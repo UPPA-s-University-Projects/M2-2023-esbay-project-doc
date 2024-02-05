@@ -1,20 +1,26 @@
 \ProvidesPackage{esbayconfig}
 
+% Set up header and footer
 \pagestyle{fancy}
-\fancypagestyle{plain}{% Apply to first page
-  \fancyhf{} % Clear header and footer
-  \lhead{\includegraphics[width=3.5cm]{res/esbay_logo.png}}
-  \renewcommand{\headrulewidth}{0pt} % Remove header rule
-  \renewcommand{\footrulewidth}{0pt} % Remove footer rule
-}
+\fancyhead{}
+\fancyhead[L]{\esbay}  % Place the ESBay logo on the left of the header only on the first page
 
-\newcommand{\esbaylogo}{\raisebox{-0.5\height}{\includegraphics[width=2cm]{res/esbay_logo.png}}}
-
+\newcommand{\esbay}{\raisebox{-0.2\height}{\includegraphics[width=2.35cm]{res/esbay_logo.png}}}
 
 
 % Other settings for the page layout
 \renewcommand{\headrulewidth}{0pt} % Remove header rule
 \renewcommand{\footrulewidth}{0pt} % Remove footer rule
+
+% \AddToShipoutPictureBG{%
+%   \AtPageLowerLeft{%
+%     \put(0mm,-5mm){\color[RGB]{221,67,64}\rule{\paperwidth}{5mm}}%
+%     \put(0mm,-10mm){\color[RGB]{111,49,236}\rule{\paperwidth}{5mm}}%
+%     \put(0mm,-15mm){\color[RGB]{42,98,203}\rule{\paperwidth}{5mm}}%
+%     \put(0mm,-20mm){\color[RGB]{235,178,61}\rule{\paperwidth}{5mm}}%
+%     \put(0mm,-25mm){\color[RGB]{144,183,61}\rule{\paperwidth}{5mm}}%
+%   }%
+% }
 
 % Set up page margins
 \geometry{
@@ -25,3 +31,6 @@
   top=20mm,
   bottom=20mm,
 }
+
+
+

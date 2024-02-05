@@ -4,14 +4,18 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{geometry}
-\usepackage{lipsum} % For generating dummy text, you can remove this in your final document
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{fancyhdr}
 \usepackage{esbayconfig}  % Include your custom configuration
+\usepackage{indentfirst}
+\usepackage{xcolor}    % For specifying colors
+\usepackage{tikz}
+\usepackage{atbegshi}
+
 
 % Title information
-\title{\esbay Bidding service documentation}
+\title{ESBay Bidding service documentation}
 \author{Clément Combier}
 \date{06/02/2024}
 
@@ -20,23 +24,167 @@
 \maketitle
 
 \section{Introduction}
-% Your introduction goes here
+The ESBay system is intended to provide an online bidding system for new or used products. ESBay is
+neither a traditional Business-to-Consumer (B2C) nor a Business-to-Business (B2B) system. It is rather a
+Consumer-to-Consumer (C2C) system. As a consequence, this system could gain an important number of users
+depending on its future success. Users (actors) of the ESBay system are represented by sellers and buyers. The
+sellers post new or used products and the buyers submit bids during an established bidding period. At the end of
+the bidding period, if at least one buyer has submitted a bid with a price equal or higher than the minimum price
+specified by the seller, then the buyer is considered as the winner of the product and the payment process can be
+started. The buyer needs to pay for the product and then he needs to submit the information about the payment.
+The payment process finishes when the seller confirms the payment. Finally, the delivery process can start.
+During this final process, the seller needs to send the product and to inform the system about the delivery details
+as well as to submit the buyer evaluation. The buyer confirms the delivery when the product is received and also
+submits the seller evaluation.
 
 \section{System Overview}
-% Describe the system or project you're explaining
+\subsubsection{Functional requirements}
+
+The following paragraphs introduce the expected functionalities based on the several processes involved in
+the ESBay business operations. A kind of user-story approach has been followed to describe each functionality:
+actor, functionality and rationalisation/justification. The functionalities have been grouped in three sequential
+processes: bidding, payment and delivery.
+\paragraph{Bidding process:}
+\begin{itemize}
+  \item Sellers post products (indicating description, initial price, minimal accepted price and bidding duration) in
+        order to start the bidding process. The product is persisted in a database. The seller account is created and
+        persisted if it is the first time that he/she uses the ESBay system.
+  \item Buyers search for products that are being bidding (based on the description and the price). The buyer
+        account is created and persisted if it is the first time that he/she uses the ESBay system.
+  \item Buyers submit bids during the bidding process in order to win the products. Only bids higher than the
+        current product bid will be accepted.
+  \item Potential buyers can submit questions during the bidding process in order to get details about the product
+        (e.g. condition, delivery, etc.)
+  \item Sellers submit responses to the buyers' questions.
+  \item Buyers obtain a notification when they are the temporal winners of a product.
+\end{itemize}
+
+\paragraph{From the SOA world to the new generation of Cloud Computing platforms (SOA-PaaS)}
+
+\begin{itemize}
+  \item Sellers post products (indicating description, initial price, minimal accepted price and bidding duration) in
+        order to start the bidding process. The product is persisted in a database. The seller account is created and
+        persisted if it is the first time that he/she uses the ESBay system.
+  \item Buyers search for products that are being bidding (based on the description and the price). The buyer
+        account is created and persisted if it is the first time that he/she uses the ESBay system.
+  \item Buyers submit bids during the bidding process in order to win the products. Only bids higher than the
+        current product bid will be accepted.
+  \item Potential buyers can submit questions during the bidding process in order to get details about the product
+        (e.g. condition, delivery, etc.)
+  \item Sellers submit responses to the buyers' questions.
+  \item Buyers obtain a notification when they are the temporal winners of a product.
+  \item Buyers obtain a notification when they are not the temporal winners of the product anymore.
+  \item Buyers obtain a notification when they are the final winners of a product.
+  \item Sellers obtain a notification when the bid is finished indicating who is the winner and the final price or
+        indicating the bidding has not been successful (no biddings or bidding lowers than the minimal accepted
+        price).
+  \item No winner buyers need to receive a notification informing they have lost the product.
+\end{itemize}
+
+\paragraph{Payment Process}
+
+\begin{itemize}
+  \item At the end of each bidding process, the ESBay systems automatically triggers the payment process when
+        there is a winner for the product.
+  \item The winner buyer receives a notification with the instructions to pay the product at the beginning of the
+        payment process.
+  \item The winner buyer submits the payment details that are persisted in the database.
+  \item The seller confirms the reception of the payment when he/she has received it. This confirmation is
+        persisted in the database.
+  \item The ESBay system reminds the winner buyer every day if he/she has not submitted the payment details.
+  \item The seller can cancel the payment process if after 15 days he/she has not received the payment.
+  \item At the end of the payment process, the ESBay system automatically triggers the delivery process if the
+        payment has been validated by the buyer.
+\end{itemize}
+
+\paragraph{Delivery Process}
+
+\begin{itemize}
+  \item The seller receives a notification with the instructions to deliver the product at the beginning of the delivery
+        process.
+  \item The seller submits the delivery details and the evaluation of the winner buyer. The information is persisted
+        in the database.
+  \item The winner buyer submits the confirmation of the product reception and the evaluation of the seller and
+        product. This information is also persisted in the database.
+  \item The ESBay system reminds the winner buyer and/or the seller every day if he/she has not submitted the
+        required information.
+  \item The end of the delivery process is achieved when delivery and evaluation details have been submitted.
+\end{itemize}
+
+\subsubsection{Proposed solution} 
+Our service \textit{bidding\_service} will handle all functionalities related to managing biddings, including creation, updating, deletion, and notifications. It will take information from items and users to manage biddings within our system, providing JSON data as output and directly recording data in the esbay database.
+
+This service is composed of the following micro-services and functionalities : 
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|p{3cm}|p{5cm}|p{5cm}|p{4cm}|}
+    \hline
+    \textbf{Service Description} & \textbf{Service Input} & \textbf{Service Output} & \textbf{Service URL (internal or external)} \\ \hline
+    A seller is listing an item & JSON data representing the item details for listing & JSON response confirming the success of the listing & Internal: /seller\_selling \\ \hline
+    List all biddings in effect & None & JSON array containing details of all active biddings & Internal: /list\_biddings \\ \hline
+    A buyer bids for an item in effect selling & JSON data representing the buyer's bid and item details & JSON response confirming the success of the bid placement & Internal: /buyer\_bid \\ \hline
+    Time is up on the bidding (Result winner, send mails, etc.) & JSON data with bidding details (winner, result, etc.) & JSON response confirming the completion of time management & Internal: /times\_up \\ \hline
+    Manage time on a bidding & JSON data with bidding ID and new time & JSON response confirming the success of time management & Internal: /times\_management \\ \hline
+    \end{tabular}
+    \caption{Service Information}
+    \label{tab:service-info}
+\end{table}
 
 \section{How It Works}
-% Explain the working principle or functionality
+The \verb|create_app()| function is the application factory function. It creates an instance of the Flask application, configures certain options, initializes the SQLAlchemy extension, registers blueprints for the application routes, and initializes the database.
 
-\section{Demo}
-% Include a section with a demo of your system
-% You can use figures, code snippets, or any other relevant content
+The Flask application instance is created with \verb|app = Flask(__name__)|. Then, several configuration options are set, including the database URI, SQLAlchemy track modifications option, and the application's secret key.
 
-\section{Conclusion}
-% Summarize your document and provide concluding remarks
+The SQLAlchemy extension is initialized with \verb|db.init_app(app)|. This binds the Flask application instance to the SQLAlchemy instance, allowing the use of SQLAlchemy to interact with the database from the Flask application.
+
+Next, a SQLAlchemy engine is created with \verb|engine = create_engine('sqlite:///esbay.db')|. This engine is later used to check if the \verb|'users'| table exists in the database.
+
+The \verb|seller_service| and \verb|bidding_service| blueprints are registered with the Flask application. These blueprints define the application's routes.
+
+Then, the database is initialized, and tables are created with \verb|db.create_all()|. If an error occurs during the creation of tables, an error message is displayed.
+
+The code then checks if the \verb|'users'| table exists in the database. If it exists, a message is displayed to indicate it. Otherwise, another message is displayed.
+
+Finally, initial data is inserted into the database for testing. Two Item objects and two Bid objects are created and added to the SQLAlchemy session with \verb|db.session.add_all()|. The changes are then committed with \verb|db.session.commit()|.
+
+The \verb|create_app()| function then returns the configured Flask application instance.
+
+\subsubsection{Seller micro-service}
+A new Blueprint object is created for the selling service, allowing the grouping of routes and associated processing functions.
+
+\begin{itemize}
+    \item \verb|Route '/list_items'|: This is a GET route that retrieves all items from the database and displays them using the 'list-items.html' template.
+    
+    \item \verb|Route '/view_item/int:item_id'|: This is a GET and POST route that displays a specific item and handles the submission of bids for that item. If the request method is POST, a new bid is created and added to the database.
+    
+    \item \verb|Route '/update_item/int:item_id'|: This is a GET and POST route that updates a specific item in the database. If the item does not exist, a JSON response with an error message is returned. If the request method is POST and the form is valid, the item is updated in the database.
+    
+    \item \verb|Route '/delete_item/int:item_id'|: This is a DELETE route that deletes a specific item from the database. If the item exists, it is deleted, and a success message is returned. Otherwise, an error message is returned.
+    
+    \item \verb|Route '/add_item'|: This is a GET and POST route that adds a new item to the database. If the request method is POST and the form is valid, a new item is created and added to the database.
+\end{itemize}
+
+
+These routes collectively define the CRUD (Create, Read, Update, Delete) operations for managing items in the application.
+
+\subsubsection{Bidding micro-service}
+A new Blueprint object is created for the bidding service, allowing the grouping of routes and associated processing functions.
+
+\begin{itemize}
+    \item \verb|Route '/ongoing_bids'|: This route is accessible via a GET request and returns a list of ongoing auctions. The data is retrieved by calling the \verb|get_ongoing_bids()| method of the \verb|bid| object, and then it is passed to an HTML template for display.
+    
+    \item \verb|Route '/create_bidding'|: This route is accessible via a POST request and is used to create a new auction. It expects JSON in the request body with the keys \verb|'item_id'| and \verb|'initial_price'|. If this data is present, it calls the \verb|create_bidding()| method of the \verb|bid| object to create the auction. The result is returned in JSON format.
+    
+    \item \verb|Route '/get_bidding/int:item_id'|: This route is accessible via a GET request and is used to obtain information about a specific auction. The auction ID is passed as a parameter in the URL. The \verb|get_bidding()| method of the \verb|bid| object is called with this ID to retrieve the auction information.
+    
+    \item \verb|Route '/place_bid/int:item_id'|: This route is accessible via a GET or POST request and is used to place a bid on an item. The item ID is passed as a parameter in the URL. If the request is a POST and the form is valid, the \verb|place_bid()| method of the \verb|bid| object is called to place the bid.
+    
+    \item \verb|Route '/get_bids/int:item_id'|: This route is accessible via a GET request and is used to obtain all bids for a specific item. The item ID is passed as a parameter in the URL. The \verb|get_all_bids_for_item()| method of the \verb|bid| object is called with this ID to get the list of bids.
+\end{itemize}
+Each route returns a JSON response with the requested data or an error message, along with an appropriate HTTP status code.
 
 % Bibliography, if needed
-% \bibliographystyle{plain}
+%\bibliographystyle{plain}
 % \bibliography{your_references.bib}
 
 \end{document}
